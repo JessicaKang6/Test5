@@ -1,8 +1,8 @@
-﻿@page "/"
+@page "/"
 
 <style>
     #myDIV {
-    visibility: @visibilityStatus;
+    visibility: @gameVisibilityStatus;
 }
 .startButton{
     visibility: @startButtonVisibility;
@@ -13,15 +13,19 @@
 #additionSubmit{
     visibility: @additionSubmitVisibility;
 }
+#backButton{
+    visibility: @backButtonVisibility;
+}
+#resetButton{
+    visibility: @resetButtonVisibility;
+}
+}
 </style>
-blah
 <PageTitle>Index</PageTitle>
 
 <h1>Hello, world! </h1>
 
 Welcome to your new app.
- 
-@testString 
 
 <p>
 <button class="startButton" @onclick=Start>Start</button> 
@@ -29,71 +33,159 @@ Welcome to your new app.
 
 <span><button class="modeButton" @onclick=Addition>+</button>
     <button class="modeButton" @onclick=Subtraction>-</button>
+    <button class="modeButton" @onclick=Multiplication>x</button>
+    <button class="modeButton" @onclick=Division>/</button>
     </span>
 
 <div id="myDIV">
 <p> @number @function @number2 </p>
 
-<p>
-    <input @onkeypress="Enter" @bind="InputValue"/>
-</p>
+<input @onkeyup="Enter" @bind="InputValue"/>
 
-<p> @error @goodJob </p>
+ @error @goodJob 
+
+<p>Score: @score </p>
+<p> @countdown </p>
+
+<button id="backButton" @onclick=Back>Back</button>
+<button id="resetButton" @onclick=Reset>Reset</button>
 </div>
 
 
 @code {
-    string testString = "initial";
-    public string visibilityStatus = "hidden";
+    //game visibility 
+    public string gameVisibilityStatus = "hidden";
     public string startButtonVisibility = "visible";
     public string modeButtonVisibility = "hidden";
     public string additionSubmitVisibility = "hidden";
+    public string backButtonVisibility = "hidden";
+    public string resetButtonVisibility = "hidden";
+
+    //game mode
+    string theOperation = "";
+
+    //user input 
     private int? InputValue { get; set; }
 
+    //equation 
     int number = 0;
     int number2 = 0;
     private int? answer { get; set; }
     string function = "";
 
+    //processing correct/incorrect answer
+    int score = 0;
     string error = "";
     string goodJob = "";
+    bool submission = false;
+    bool firstTime = true;
+    bool restart = false;
 
-    bool addition = false;
-    bool subtraction = false;
+    //countdown timer variables
+    private static System.Timers.Timer aTimer;
+    private int countdown = 10;
 
     private void Start()
     {
         modeButtonVisibility = "visible";
         startButtonVisibility = "hidden";
+        backButtonVisibility = "visible";
     }
 
     private void Addition()
     {
-        visibilityStatus = "visible";
+        theOperation = "addition";
+
+        gameVisibilityStatus = "visible";
         modeButtonVisibility = "hidden";
+        function = "+";
+
         Random rnd = new Random();
         number = rnd.Next(1, 10);
-        number2 = rnd.Next(number, 10);
+        number2 = rnd.Next(1,10);
         answer = number + number2;
-        this.InputValue = null;
-        function = "+";
-        addition = true;
+
+        aTimer = new System.Timers.Timer(1000);
+        aTimer.Elapsed += CountDownTimer;
+        aTimer.Enabled = true;
+    }
+    public void CountDownTimer(Object source, System.Timers.ElapsedEventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+
+        if (countdown > 0)
+        {
+            countdown--;   
+        }
+        else
+        {
+            error = "oh no";
+            goodJob = "";
+            if (score > 0)
+                score--;               
+            countdown = 10;
+            aTimer.Enabled = false;
+        }
+           if (firstTime)
+            {
+                firstTime = false;
+            }
+            else
+            {
+                if (score == 0)
+                {
+                    resetButtonVisibility = "visible";
+                    backButtonVisibility = "hidden";
+                    gameVisibilityStatus = "hidden";
+                }
+        }
+    }
+    private void Reset()
+    {
+        gameVisibilityStatus = "hidden";
+        startButtonVisibility = "visible";
+        error = "";
+        resetButtonVisibility = "hidden";
     }
 
     public void Subtraction()
     {
-        visibilityStatus = "visible";
+        theOperation = "subtraction";
+
+        gameVisibilityStatus = "visible";
         modeButtonVisibility = "hidden";
         function = "-";
-        subtraction = true;
-            Random rnd = new Random();
-            number2 = rnd.Next(1, 10);
-            number = rnd.Next(number2, 10);
-            answer = number - number2;
-            this.InputValue = null;
-            error = "";
-            goodJob = "good job";
-            testString = "pressed";
+
+        Random rnd = new Random();
+        number2 = rnd.Next(1, 20);
+        number = rnd.Next(number2, 20);
+        answer = number - number2;     
+    }
+
+    private void Multiplication()
+    {
+        theOperation = "multiplication";
+        gameVisibilityStatus = "visible";
+        modeButtonVisibility = "hidden";
+        function = "x";
+
+        Random rnd = new Random();
+        number = rnd.Next(1, 5);
+        number2 = rnd.Next(1,5);
+        answer = number*number2;
+    }
+
+    private void Division()
+    {
+        theOperation = "division";
+        gameVisibilityStatus = "visible";
+        modeButtonVisibility = "hidden";
+        function = "/";
+
+        Random rnd = new Random();
+        number2 = rnd.Next(1,5);
+        number = number2*rnd.Next(1, 5);
+        answer = number/number2;
     }
 
 
@@ -101,38 +193,104 @@ Welcome to your new app.
     {
         if (e.Key != "Enter")
             return;
-        
-        if (addition == true)
+        submission = answer == InputValue;
+        if (theOperation == "addition")
+        {
+            if (submission == true)
             {
+                ++score;
+
                 Random rnd = new Random();
                 number = rnd.Next(1, 10);
                 number2 = rnd.Next(1, 10);
                 answer = number + number2;
                 this.InputValue = null;
+
                 error = "";
                 goodJob = "good job";
 
+                countdown = 10;
             }
-            if (subtraction == true)
+            else
             {
-                bool submission = answer == InputValue;
-                if (submission == true)
-        {
-             Random rnd = new Random();
-            number2 = rnd.Next(1, 10);
-            number = rnd.Next(number2, 10);
-            answer = number - number2;
-            this.InputValue = null;
-            error = "";
-            goodJob = "good job";
-            testString = "pressed";   
+                error = "wrong";
+                goodJob = "";
             }
-            if (submission == false)
+        }
+
+        if (theOperation == "subtraction")
         {
-            goodJob = "";
-            error = "wrong";
-        }     
+            if (submission == true)
+            {
+                ++score;
+
+                Random rnd = new Random();
+                number2 = rnd.Next(1, 20);
+                number = rnd.Next(number2 - 1, 20);
+                answer = number - number2;
+                this.InputValue = null;
+
+                error = "";
+                goodJob = "good job";
+            }
+            else
+            {
+                goodJob = "";
+                error = "wrong";
+            }
+        }
+
+        if (theOperation == "multiplication")
+        {
+            if (submission == true)
+            {
+                ++score;
+
+                Random rnd = new Random();
+                number = rnd.Next(1, 6);
+                number2 = rnd.Next(1, 6);
+                answer = number*number2;
+                this.InputValue = null;
+
+                error = "";
+                goodJob = "good job";
+            }
+            else
+            {
+                error = "wrong";
+                goodJob = "";
+            }
+        }
+
+        if (theOperation == "division")
+        {
+            if (submission == true)
+            {
+                ++score;
+
+                Random rnd = new Random();
+                number2 = rnd.Next(1,6);
+                number = number2*rnd.Next(1, 6);
+                answer = number/number2;
+                this.InputValue = null;
+
+                error = "";
+                goodJob = "good job";
+            }
+            else
+            {
+                error = "wrong";
+                goodJob = "";
+            }
+        }
     }
+
+    private void Back()
+    {
+        gameVisibilityStatus = "hidden";
+        modeButtonVisibility = "visible";
+        score = 0;
+        resetButtonVisibility = "hidden";
     }
     }
    
